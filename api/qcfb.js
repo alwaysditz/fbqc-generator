@@ -4,12 +4,12 @@ export const config = {
   runtime: 'edge',
 };
 
-const EXTERNAL_API_URL = "https://your-external-api.vercel.app/api/qcfb"; // Ganti dengan URL API Anda
+// URL API eksternal yang Anda berikan
+const EXTERNAL_API_URL = "https://api.sxtream.xyz/maker/fake-chat-fb";
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: "Method Not Allowed" }), {
+    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
       status: 405,
       headers: { "Content-Type": "application/json" }
     });
@@ -18,16 +18,15 @@ export default async function handler(req) {
   try {
     const { name, comment, profileUrl } = await req.json();
 
-    if (!name || !comment) {
-      return new Response(
-        JSON.stringify({ error: "Nama dan kata-kata tidak boleh kosong." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" }
-      });
-    }
+    // Menggunakan URL default jika profileUrl kosong
+    const finalProfileUrl = profileUrl && profileUrl.trim() !== '' ? profileUrl : 'https://files.catbox.moe/f7g0nx.jpg';
 
-    const response = await axios.post(EXTERNAL_API_URL, { name, comment, profileUrl }, {
-      responseType: 'arraybuffer' // Untuk mendapatkan buffer gambar
+    // Menggabungkan URL dasar dengan parameter dari input user
+    const finalUrl = `${EXTERNAL_API_URL}?name=${encodeURIComponent(name)}&comment=${encodeURIComponent(comment)}&profileUrl=${encodeURIComponent(finalProfileUrl)}`;
+    
+    // Mengambil gambar dari API eksternal
+    const response = await axios.get(finalUrl, {
+      responseType: 'arraybuffer'
     });
 
     const buffer = response.data;
@@ -42,10 +41,10 @@ export default async function handler(req) {
 
   } catch (error) {
     console.error(error);
-    return new Response(
-      JSON.stringify({ error: "Failed to generate image from external API." }), {
+    return new Response(JSON.stringify({ error: "Gagal mengambil gambar dari API eksternal." }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
   }
-  }
+}
+  
