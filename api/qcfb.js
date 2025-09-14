@@ -1,11 +1,15 @@
-import axios from 'axios';
-
 export const config = {
   runtime: 'edge',
 };
 
-// URL API eksternal yang Anda berikan
 const EXTERNAL_API_URL = "https://api.sxtream.xyz/maker/fake-chat-fb";
+const DEFAULT_PROFILE = "https://files.catbox.moe/f7g0nx.jpg";
+
+// Fungsi validasi sederhana
+function sanitizeText(text, maxLength = 120) {
+  if (!text) return "";
+  return text.toString().substring(0, maxLength).trim();
+}
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
@@ -17,34 +21,48 @@ export default async function handler(req) {
 
   try {
     const { name, comment, profileUrl } = await req.json();
-    
-    // Menggunakan URL default jika profileUrl kosong
-    const finalProfileUrl = profileUrl && profileUrl.trim() !== '' ? profileUrl : 'https://files.catbox.moe/f7g0nx.jpg';
 
-    // Menggabungkan URL dasar dengan parameter dari input user
-    const finalUrl = `${EXTERNAL_API_URL}?name=${encodeURIComponent(name)}&comment=${encodeURIComponent(comment)}&profileUrl=${encodeURIComponent(finalProfileUrl)}`;
-    
-    // Mengambil data biner (arraybuffer) dari API eksternal
-    const response = await axios.get(finalUrl, {
-      responseType: 'arraybuffer'
-    });
+    // Sanitasi input
+    const safeName = sanitizeText(name, 50);
+    const safeComment = sanitizeText(comment, 200);
+    const safeProfile = profileUrl && profileUrl.startsWith("http")
+      ? profileUrl.trim()
+      : DEFAULT_PROFILE;
 
-    const buffer = response.data;
+    if (!safeName || !safeComment) {
+      return new Response(JSON.stringify({ error: "Nama dan kata-kata wajib diisi." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
 
-    // Mengembalikan buffer gambar langsung
-    return new Response(buffer, {
+    // Buat URL API eksternal
+    const finalUrl = `${EXTERNAL_API_URL}?name=${encodeURIComponent(safeName)}&comment=${encodeURIComponent(safeComment)}&profileUrl=${encodeURIComponent(safeProfile)}`;
+
+    // Fetch gambar dari API eksternal
+    const response = await fetch(finalUrl);
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: "Gagal generate gambar dari API eksternal." }), {
+        status: 502,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(arrayBuffer).toString("base64");
+    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
+
+    // Kembalikan JSON agar sesuai dengan frontend kamu
+    return new Response(JSON.stringify({ result: dataUrl }), {
       status: 200,
-      headers: {
-        "Content-Type": "image/jpeg",
-        "Content-Length": buffer.length,
-      },
+      headers: { "Content-Type": "application/json" },
     });
 
-  } catch (error) {
-    console.error(error);
-    return new Response(JSON.stringify({ error: "Gagal mengambil gambar dari API eksternal." }), {
+  } catch (err) {
+    console.error(err);
+    return new Response(JSON.stringify({ error: "Terjadi kesalahan server." }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
   }
-}
+        }
