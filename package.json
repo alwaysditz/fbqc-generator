@@ -1,12 +1,14 @@
 {
   "name": "fbqc-generator-edge",
   "version": "1.0.0",
-  "description": "FBQC Generator with Vercel Edge Functions",
-  "main": "fbqc.js",
+  "description": "FBQC Generator with Vercel Edge Runtime",
   "scripts": {
     "start": "vercel dev"
   },
   "dependencies": {
     "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "vercel": "^32.5.0"
   }
 }
