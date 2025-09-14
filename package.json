@@ -3,12 +3,8 @@
   "version": "1.0.0",
   "description": "FBQC Generator with Vercel Edge Runtime",
   "scripts": {
+    "dev": "vercel dev",
     "start": "vercel dev"
   },
-  "dependencies": {
-    "axios": "^1.6.2"
-  },
-  "devDependencies": {
-    "vercel": "^32.5.0"
-  }
+  "dependencies": {}
 }
